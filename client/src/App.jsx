@@ -11,19 +11,38 @@ import InterviewHistory from './pages/InterviewHistory'
 import Pricing from './pages/Pricing'
 import InterviewReport from './pages/InterviewReport'
 
-export const ServerUrl  = "http://localhost:8000"
+export const ServerUrl  = import.meta.env.VITE_SERVER_URL || "http://13.211.215.48:8000"
+
+axios.interceptors.request.use((config) => {
+  const token = localStorage.getItem("interviewiq_token")
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
 
 function App() {
 
   const dispatch = useDispatch()
   useEffect(()=>{
+    const savedUser = localStorage.getItem("interviewiq_user")
+    if (savedUser) {
+      try {
+        dispatch(setUserData(JSON.parse(savedUser)))
+      } catch (e) {
+        console.error(e)
+      }
+    }
     const getUser = async () => {
       try {
         const result = await axios.get(ServerUrl + "/api/user/current-user", {withCredentials:true})
         dispatch(setUserData(result.data))
+        localStorage.setItem("interviewiq_user", JSON.stringify(result.data))
       } catch (error) {
         console.log(error)
-        dispatch(setUserData(null))
+        if (!savedUser) {
+          dispatch(setUserData(null))
+        }
       }
     }
     getUser()

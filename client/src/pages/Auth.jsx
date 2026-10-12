@@ -12,21 +12,46 @@ import { setUserData } from '../redux/userSlice';
 function Auth({isModel = false}) {
     const dispatch = useDispatch()
 
+    const [authLoading, setAuthLoading] = React.useState(false)
+
     const handleGoogleAuth = async () => {
         try {
+            setAuthLoading(true)
             const response = await signInWithPopup(auth,provider)
             let User = response.user
             let name = User.displayName
             let email = User.email
             const result = await axios.post(ServerUrl + "/api/auth/google" , {name , email} , {withCredentials:true})
+            if (result.data?.token) {
+                localStorage.setItem("interviewiq_token", result.data.token)
+            }
+            localStorage.setItem("interviewiq_user", JSON.stringify(result.data))
             dispatch(setUserData(result.data))
-            
-
-
-            
         } catch (error) {
-            console.log(error)
+            console.error(error)
+            alert("Google Sign-In Notice: " + (error.message || "Failed to sign in. Please try 1-Click Demo Login."))
               dispatch(setUserData(null))
+        } finally {
+            setAuthLoading(false)
+        }
+    }
+
+    const handleDemoAuth = async () => {
+        try {
+            setAuthLoading(true)
+            const name = "Demo Candidate"
+            const email = "candidate@interviewiq.com"
+            const result = await axios.post(ServerUrl + "/api/auth/google" , {name , email} , {withCredentials:true})
+            if (result.data?.token) {
+                localStorage.setItem("interviewiq_token", result.data.token)
+            }
+            localStorage.setItem("interviewiq_user", JSON.stringify(result.data))
+            dispatch(setUserData(result.data))
+        } catch (error) {
+            console.error(error)
+            alert("Demo Login failed: " + (error.response?.data?.message || error.message))
+        } finally {
+            setAuthLoading(false)
         }
     }
   return (
@@ -66,16 +91,33 @@ function Auth({isModel = false}) {
             </p>
 
 
-            <motion.button 
-            onClick={handleGoogleAuth}
-            whileHover={{opacity:0.9 , scale:1.03}}
-            whileTap={{opacity:1 , scale:0.98}}
-            className='w-full flex items-center justify-center gap-3 py-3 bg-black text-white rounded-full shadow-md '>
-                <FcGoogle size={20}/>
-                Continue with Google
+            <div className='flex flex-col gap-3'>
+                <motion.button 
+                onClick={handleGoogleAuth}
+                disabled={authLoading}
+                whileHover={{opacity:0.9 , scale:1.02}}
+                whileTap={{opacity:1 , scale:0.98}}
+                className='w-full flex items-center justify-center gap-3 py-3 bg-black text-white rounded-full shadow-md disabled:opacity-50 cursor-pointer'>
+                    <FcGoogle size={20}/>
+                    {authLoading ? "Signing in..." : "Continue with Google"}
+                </motion.button>
 
-   
-            </motion.button>
+                <div className='flex items-center my-1'>
+                    <div className='flex-grow border-t border-gray-200'></div>
+                    <span className='px-3 text-xs text-gray-400 font-medium uppercase'>or</span>
+                    <div className='flex-grow border-t border-gray-200'></div>
+                </div>
+
+                <motion.button 
+                onClick={handleDemoAuth}
+                disabled={authLoading}
+                whileHover={{opacity:0.95 , scale:1.02}}
+                whileTap={{opacity:1 , scale:0.98}}
+                className='w-full flex items-center justify-center gap-2 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-full shadow-md transition disabled:opacity-50 cursor-pointer'>
+                    <IoSparkles size={18}/>
+                    {authLoading ? "Signing in..." : "Instant Demo Login (1-Click)"}
+                </motion.button>
+            </div>
         </motion.div>
 
       
